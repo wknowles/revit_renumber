@@ -1,0 +1,457 @@
+{
+  "Uuid": "1afa78d1efcd438c8c4ce42d8e94912f",
+  "IsCustomNode": false,
+  "Description": "Renumber selected exhibition booth Rooms: prefix, start, step, suffix, dry run.",
+  "Name": "RenumberRooms",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [
+    {
+      "Id": "ad682a145e70458b87659c4678d3d24b",
+      "Name": "Prefix",
+      "Type": "string",
+      "Type2": "string",
+      "Value": "",
+      "Description": "Prefix including any separator, e.g. A-"
+    },
+    {
+      "Id": "8517bf06a83e4e63afd62a7a69c6d561",
+      "Name": "Start",
+      "Type": "number",
+      "Type2": "number",
+      "Value": "1",
+      "Description": "First number in the sequence"
+    },
+    {
+      "Id": "075bcfa40b2049b5a173c3ec3c605d9c",
+      "Name": "Step",
+      "Type": "number",
+      "Type2": "number",
+      "Value": "1",
+      "Description": "Increment, e.g. 1, 2 or 2 for odd numbers"
+    },
+    {
+      "Id": "52716a65f8b44c43baab9ac6f780074e",
+      "Name": "Suffix",
+      "Type": "string",
+      "Type2": "string",
+      "Value": "",
+      "Description": "Suffix including any separator, e.g. -E"
+    },
+    {
+      "Id": "bed4ad3dbd1645368bd798c9d366142d",
+      "Name": "Digits",
+      "Type": "number",
+      "Type2": "number",
+      "Value": "3",
+      "Description": "Zero padding width, e.g. 3 gives 001"
+    },
+    {
+      "Id": "02e1a828157e449ab069d184f4fc8a95",
+      "Name": "Dry run",
+      "Type": "boolean",
+      "Type2": "boolean",
+      "Value": "true",
+      "Description": "Report only, do not write room numbers"
+    }
+  ],
+  "Outputs": [
+    {
+      "Id": "e7479a14e51e4e61b63943ada115f83c",
+      "Name": "Report",
+      "Type": "string",
+      "InitialValue": "",
+      "Description": "Renumbering report"
+    }
+  ],
+  "Nodes": [
+    {
+      "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
+      "NodeType": "StringInputNode",
+      "InputValue": "",
+      "Id": "ad682a145e70458b87659c4678d3d24b",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "c833f71113b94bfc89463fb57a4f7ca0",
+          "Name": "",
+          "Description": "string",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Prefix including any separator, e.g. A-"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.DoubleInput, CoreNodeModels",
+      "NodeType": "NumberInputNode",
+      "InputValue": 1,
+      "Id": "8517bf06a83e4e63afd62a7a69c6d561",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "81a3b7e8beef4c618e645da926ef1146",
+          "Name": "",
+          "Description": "number",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "First number in the sequence",
+      "NumberType": "Double"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.DoubleInput, CoreNodeModels",
+      "NodeType": "NumberInputNode",
+      "InputValue": 1,
+      "Id": "075bcfa40b2049b5a173c3ec3c605d9c",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "e0496fc33a0d496cb9146ee19f5507d9",
+          "Name": "",
+          "Description": "number",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Increment, e.g. 1, 2 or 2 for odd numbers",
+      "NumberType": "Double"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
+      "NodeType": "StringInputNode",
+      "InputValue": "",
+      "Id": "52716a65f8b44c43baab9ac6f780074e",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "856f1213fd3e4d18ac58c290b54697f1",
+          "Name": "",
+          "Description": "string",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Suffix including any separator, e.g. -E"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.DoubleInput, CoreNodeModels",
+      "NodeType": "NumberInputNode",
+      "InputValue": 3,
+      "Id": "bed4ad3dbd1645368bd798c9d366142d",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "06f6fc345d2b4a20bb28b085f76d7364",
+          "Name": "",
+          "Description": "number",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Zero padding width, e.g. 3 gives 001",
+      "NumberType": "Double"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.BoolSelector, CoreNodeModels",
+      "NodeType": "BooleanInputNode",
+      "InputValue": true,
+      "Id": "02e1a828157e449ab069d184f4fc8a95",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "75a91b1cd1c14b998ca8491ee9fc2d59",
+          "Name": "",
+          "Description": "boolean",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Report only, do not write room numbers"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "# Renumber exhibition booth Rooms.\n# IN[0]=prefix  IN[1]=start  IN[2]=step  IN[3]=suffix  IN[4]=digits  IN[5]=dry run\nimport re\nimport uuid\nimport clr\n\nclr.AddReference(\"RevitAPI\")\nclr.AddReference(\"RevitServices\")\n\nfrom Autodesk.Revit.DB import (\n    BuiltInParameter,\n    FilteredElementCollector,\n    Transaction,\n)\nfrom Autodesk.Revit.DB.Architecture import Room\nfrom RevitServices.Persistence import DocumentManager\nfrom RevitServices.Transactions import TransactionManager\n\ndoc = DocumentManager.Instance.CurrentDBDocument\nuidoc = DocumentManager.Instance.CurrentUIDocument\n\n\ndef as_int(value, fallback):\n    try:\n        return int(round(float(value)))\n    except (TypeError, ValueError):\n        return fallback\n\n\ndef format_label(prefix, number, width, suffix):\n    return \"{}{:0{}d}{}\".format(prefix, number, width, suffix)\n\n\ndef element_id(element):\n    try:\n        return element.Id.Value\n    except AttributeError:\n        return element.Id.IntegerValue\n\n\ndef number_parameter(room):\n    return room.get_Parameter(BuiltInParameter.ROOM_NUMBER)\n\n\ndef run():\n    prefix = \"\" if IN[0] is None else str(IN[0])\n    start = as_int(IN[1], 1)\n    step = as_int(IN[2], 1)\n    suffix = \"\" if IN[3] is None else str(IN[3])\n    digits = as_int(IN[4], 3)\n    dry_run = bool(IN[5])\n\n    problems = []\n    if step < 1:\n        problems.append(\"Step must be at least 1 (got {}).\".format(step))\n    if start < 0:\n        problems.append(\"Start must be 0 or greater (got {}).\".format(start))\n    if digits < 1:\n        problems.append(\"Digits must be at least 1 (got {}).\".format(digits))\n    if problems:\n        return \"Renumber aborted:\\n  \" + \"\\n  \".join(problems)\n\n    selected = [doc.GetElement(i) for i in uidoc.Selection.GetElementIds()]\n    selected = [e for e in selected if isinstance(e, Room)]\n\n    rooms = []\n    notes = []\n    for room in selected:\n        if not getattr(room, \"IsPlaced\", True) or room.Area <= 0:\n            notes.append(\"SKIP unplaced or empty room (id {})\".format(element_id(room)))\n        elif number_parameter(room) is None:\n            notes.append(\"SKIP room without a Number parameter (id {})\".format(element_id(room)))\n        else:\n            rooms.append(room)\n\n    if not rooms:\n        return \"Renumber: no placed Rooms in the selection. Nothing changed.\"\n\n    pattern = re.compile(\"^\" + re.escape(prefix) + r\"(\\d+)\" + re.escape(suffix) + \"$\")\n\n    selected_uids = set(room.UniqueId for room in rooms)\n    occupied = set()\n    for other in FilteredElementCollector(doc).OfClass(Room):\n        if other.UniqueId in selected_uids:\n            continue\n        parameter = other.get_Parameter(BuiltInParameter.ROOM_NUMBER)\n        label = (parameter.AsString() if parameter is not None else \"\") or \"\"\n        match = pattern.match(label)\n        if match:\n            occupied.add(int(match.group(1)))\n\n    cursor = start\n    numbers = []\n    skipped = []\n    for _ in rooms:\n        number = cursor\n        guard = 0\n        while number in occupied:\n            skipped.append(number)\n            number += step\n            guard += 1\n            if guard > 100000:\n                return \"Renumber aborted: too many occupied numbers, check Start and Step.\"\n        numbers.append(number)\n        cursor = number + step\n\n    width = max([digits] + [len(str(n)) for n in numbers])\n    if width > digits:\n        notes.append(\"WARN digits widened from {} to {} for a uniform label.\".format(digits, width))\n\n    labels = [format_label(prefix, n, width, suffix) for n in numbers]\n    if len(set(labels)) != len(labels):\n        return \"Renumber aborted: computed labels are not unique.\"\n\n    old_labels = [(number_parameter(room).AsString() or \"\") for room in rooms]\n\n    failed = []\n    if not dry_run:\n        TransactionManager.Instance.ForceCloseTransaction()\n\n        temp = Transaction(doc, \"Renumber rooms - temporary numbers\")\n        temp.Start()\n        token = \"ZZRN\" + uuid.uuid4().hex[:8]\n        for index, room in enumerate(rooms):\n            try:\n                number_parameter(room).Set(\"{}-{}\".format(token, index))\n            except Exception as error:\n                failed.append(\"FAIL temp number for id {}: {}\".format(element_id(room), error))\n        temp.Commit()\n\n        final = Transaction(doc, \"Renumber rooms - final numbers\")\n        final.Start()\n        for room, label in zip(rooms, labels):\n            try:\n                number_parameter(room).Set(label)\n            except Exception as error:\n                failed.append(\"FAIL number for id {}: {}\".format(element_id(room), error))\n        final.Commit()\n\n    lines = []\n    lines.append(\"Renumber Rooms{}\".format(\" (DRY RUN)\" if dry_run else \"\"))\n    lines.append(\"prefix='{}'  start={}  step={}  suffix='{}'  digits={}\".format(\n        prefix, start, step, suffix, digits))\n    lines.append(\"Order: selection order, {} room(s)\".format(len(rooms)))\n    lines.append(\"\")\n    for index, room, old, label in zip(range(1, len(rooms) + 1), rooms, old_labels, labels):\n        lines.append(\"{:>3}  id {:<10}  {:<14} -> {}\".format(index, str(element_id(room)), old, label))\n    if skipped:\n        lines.append(\"\")\n        lines.append(\"Skipped occupied: \" + \", \".join(\n            format_label(prefix, n, width, suffix) for n in skipped))\n    if notes or failed:\n        lines.append(\"\")\n        lines.extend(notes)\n        lines.extend(failed)\n    lines.append(\"\")\n    lines.append(\"{} {} room(s).\".format(\n        \"Would renumber\" if dry_run else \"Renumbered\", len(rooms)))\n    return \"\\n\".join(lines)\n\n\nOUT = run()\n",
+      "Engine": "PythonNet3",
+      "EngineName": "PythonNet3",
+      "VariableInputPorts": true,
+      "Id": "b82074e0601d499bbbf398201895e6f7",
+      "Inputs": [
+        {
+          "Id": "9d790e6052e346e69aa5cb4082c47e54",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "f9a2f25f13d84c729dfeb91e0df339c5",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "1bd9b75a35364b3da9e4f9eb6771e498",
+          "Name": "IN[2]",
+          "Description": "Input #2",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "ede86267974040f997a8f3a544b43eb1",
+          "Name": "IN[3]",
+          "Description": "Input #3",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "82a3840e6a884b82b56328534bfa3873",
+          "Name": "IN[4]",
+          "Description": "Input #4",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "9dae20f6bfb54ecaac07a2eee988b8c4",
+          "Name": "IN[5]",
+          "Description": "Input #5",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "a3748f52d73b4e42bac0c7f0da971c78",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Renumber the selected Rooms."
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "e7479a14e51e4e61b63943ada115f83c",
+      "Inputs": [
+        {
+          "Id": "2f3085c407f2455b95c95a3d02a4139b",
+          "Name": "",
+          "Description": "Node to evaluate.",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "7aeaaffbb7ea4506b666ea67188e251c",
+          "Name": "",
+          "Description": "Watch contents.",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the output of node."
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "c833f71113b94bfc89463fb57a4f7ca0",
+      "End": "9d790e6052e346e69aa5cb4082c47e54",
+      "Id": "0ec8936b5eba45b293fb8ecbc61df43d",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "81a3b7e8beef4c618e645da926ef1146",
+      "End": "f9a2f25f13d84c729dfeb91e0df339c5",
+      "Id": "72ee010b042e4360b5d6f64b0bc9f3e0",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "e0496fc33a0d496cb9146ee19f5507d9",
+      "End": "1bd9b75a35364b3da9e4f9eb6771e498",
+      "Id": "69f08e3a0bf74f24845be836e7259238",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "856f1213fd3e4d18ac58c290b54697f1",
+      "End": "ede86267974040f997a8f3a544b43eb1",
+      "Id": "cc77fe721f8d4c988178c3f1e81dc8bd",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "06f6fc345d2b4a20bb28b085f76d7364",
+      "End": "82a3840e6a884b82b56328534bfa3873",
+      "Id": "a63b97b1f183492ebcb5e60349e818d4",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "75a91b1cd1c14b998ca8491ee9fc2d59",
+      "End": "9dae20f6bfb54ecaac07a2eee988b8c4",
+      "Id": "85607c0d27c743e9a95de96e48454d9a",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "a3748f52d73b4e42bac0c7f0da971c78",
+      "End": "2f3085c407f2455b95c95a3d02a4139b",
+      "Id": "88cb29046d5d4ff8bd2447acf6f1c150",
+      "IsHidden": "False"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Thumbnail": "",
+  "Author": "",
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": true,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "3.3.0.0",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": 0.0,
+      "EyeY": 0.0,
+      "EyeZ": 0.0,
+      "LookX": 0.0,
+      "LookY": 0.0,
+      "LookZ": -1.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "Annotations": [],
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Prefix",
+        "Id": "ad682a145e70458b87659c4678d3d24b",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": -820,
+        "Y": -320
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Start",
+        "Id": "8517bf06a83e4e63afd62a7a69c6d561",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": -820,
+        "Y": -210
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Step",
+        "Id": "075bcfa40b2049b5a173c3ec3c605d9c",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": -820,
+        "Y": -100
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Suffix",
+        "Id": "52716a65f8b44c43baab9ac6f780074e",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": -820,
+        "Y": 10
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Digits",
+        "Id": "bed4ad3dbd1645368bd798c9d366142d",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": -820,
+        "Y": 120
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Dry run",
+        "Id": "02e1a828157e449ab069d184f4fc8a95",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": -820,
+        "Y": 230
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Renumber",
+        "Id": "b82074e0601d499bbbf398201895e6f7",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": -340,
+        "Y": -320
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Report",
+        "Id": "e7479a14e51e4e61b63943ada115f83c",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": true,
+        "Excluded": false,
+        "X": 260,
+        "Y": -320
+      }
+    ],
+    "X": -600.0,
+    "Y": -300.0,
+    "Zoom": 0.8
+  }
+}

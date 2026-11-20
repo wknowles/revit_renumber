@@ -23,10 +23,9 @@ convention" caveat.
 | Prototype | .NET |
 |---|---|
 | `uidoc.Selection.GetElementIds()` | same; returns `ICollection<ElementId>` |
-| `isinstance(e, Room)` | `.OfType<Room>()` (`Autodesk.Revit.DB.Architecture.Room`) |
-| `room.IsPlaced`, `room.Area` | `Room.IsPlaced`, `Room.Area` |
+| category filter (`OST_Rooms` + `ROOM_AREA`) | `.OfType<Room>()` / `.OfClass(typeof(Room))` (fine in C#) |
 | `room.get_Parameter(BuiltInParameter.ROOM_NUMBER)` | same (`Parameter`), `.Set(string)` |
-| `FilteredElementCollector(doc).OfClass(Room)` | `new FilteredElementCollector(doc).OfClass(typeof(Room))` |
+| `room.get_Parameter(BuiltInParameter.ROOM_AREA)` | `Room.Area`, or the same parameter |
 | `re.escape(prefix) + (\d+) + re.escape(suffix)` | `Regex.Escape(prefix) + @"(\d+)" + Regex.Escape(suffix)` |
 | `int(match.group(1))` | `int.Parse(..., CultureInfo.InvariantCulture)` |
 | `"{:0{}d}".format(n, width)` | `n.ToString("D" + width, CultureInfo.InvariantCulture)` |
@@ -36,6 +35,11 @@ convention" caveat.
 
 Revit 2027 API notes: keep `.Value` for `ElementId`; `Room.Number` still exists but going
 through the parameter keeps the same code path as the prototype.
+
+The prototype identifies rooms by category instead of importing
+`Autodesk.Revit.DB.Architecture.Room`, because PythonNet3 in some Revit builds fails to
+resolve that namespace and the Python node dies at import. A C# add-in has no such
+limitation: use the `Room` type directly.
 
 ## 3. Selection
 

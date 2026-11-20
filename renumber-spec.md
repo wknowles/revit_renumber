@@ -40,7 +40,9 @@ is trimmed or normalised.
 
 ## 4. Algorithm
 
-1. Read selection, keep placed `Room` elements with `Area > 0` and a Number parameter.
+1. Read selection, keep elements in category `OST_Rooms` with a positive `ROOM_AREA` and a
+   Number parameter. The `Room` type is deliberately not imported: some Dynamo Python engines
+   fail to resolve `Autodesk.Revit.DB.Architecture`, which breaks the whole script at import.
 2. Build `pattern = ^<escaped prefix>(\d+)<escaped suffix>$`.
 3. Scan **all** Rooms in the model (not just the selection). Exclude the selected rooms
    (their current numbers are about to be freed). Any number captured by the pattern becomes
@@ -102,6 +104,12 @@ the flag); the Watch is marked **Is Output**. Python engine: `PythonNet3`.
 If the engine is missing in your Dynamo build, right-click the Python node, choose
 `CPython3` (or `IronPython2` on older builds) and re-save. The script uses only
 `clr`/`RevitAPI`/`RevitServices`, which all three engines support.
+
+If the node reports `PythonEvaluator.Evaluate failed`, read the Report output: the script
+catches every exception (including import errors) and writes the full traceback there. An
+assembly or namespace error in that traceback means the engine cannot see RevitAPI; switch
+the node to `CPython3` and re-save. The script no longer imports
+`Autodesk.Revit.DB.Architecture`, which is the import that most often fails.
 
 ## 7. Files
 

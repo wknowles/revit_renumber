@@ -122,6 +122,7 @@ Expected: first undo restores temporary numbers, second restores the original nu
 
 | Symptom | Likely cause |
 |---|---|
+| `PythonEvaluator.Evaluate failed` | Open the Report output; the script prints the real traceback there. If it is an assembly/namespace error, switch the Python node engine to `CPython3` and re-save |
 | Graph opens with a broken Python node | Engine not available; switch to `CPython3`/`IronPython2` |
 | Fields missing in Player | Input nodes not marked `Is Input`; re-mark and save |
 | `Aborted: no placed Rooms` | Selection contained tags/areas/generic models, or nothing selected |

@@ -5,16 +5,17 @@ Two layers: logic tests that need no Revit (already passing) and Revit acceptanc
 ## 1. Offline logic tests
 
 ```bash
-python3 renumber_core.py
-# renumber_core: all self-tests passed
+python3 verify_dyn.py
+# verify_dyn: all checks passed
 ```
 
-Covers: base sequence, step, affix separators, skip-occupied, old-number reuse, padding
-widening, regex escaping of affixes, numeric-only matching, input validation.
+The harness loads `RenumberRooms.dyn`, extracts the Python from its node, and executes it
+against fake Rooms, selection, collector and transactions. It also asserts the graph wiring:
+six named `Is Input` nodes, one `Is Output` Watch, `PythonNet3`.
 
-The Python code embedded in `RenumberRooms.dyn` was additionally exercised against a simulated
-Revit document (fake Rooms/selection/transactions) with the same cases plus dry run, unplaced
-rooms, empty selection and abort-before-write. All passed.
+Covers: base sequence, step, affix separators, skip-occupied, old-number reuse, padding
+widening, regex escaping of affixes, numeric-only matching, input validation, dry run,
+unplaced rooms, empty selection, and temp-then-final writes.
 
 ## 2. Revit fixtures
 

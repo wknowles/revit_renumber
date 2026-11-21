@@ -115,12 +115,12 @@ the node to `CPython3` and re-save. The script no longer imports
 
 | File | Role |
 |---|---|
-| `RenumberRooms.dyn` | Player graph; contains an embedded copy of the logic |
-| `renumber_core.py` | Canonical, dependency-free logic + self-test (`python3 renumber_core.py`) |
+| `RenumberRooms.dyn` | The product: Player graph with the logic embedded |
+| `verify_dyn.py` | Runs the graph's embedded Python offline against fake Revit objects (`python3 verify_dyn.py`) |
 | `test_cases.md` | Acceptance fixtures and Revit checklist |
-| `handover-dotnet.md` | Porting guide for the plugin team |
 
-The .dyn copy and `renumber_core.py` are intentionally equivalent; change both together.
+The logic lives only in the .dyn's Python node. `verify_dyn.py` extracts it at run time, so
+there is no second copy to keep in sync.
 
 ## 8. Fallback: rebuild the graph by hand
 
@@ -129,8 +129,7 @@ If the .dyn fails to open in your Dynamo build, rebuild it in 5 minutes:
 1. Add six input nodes: String (`Prefix`), Number (`Start` = 1), Number (`Step` = 1),
    String (`Suffix`), Number (`Digits` = 3), Boolean (`Dry run` = true).
 2. Add one Python Script node, set its engine to `PythonNet3`, paste the `Code` string from
-   the .dyn node (or run `renumber_core.py`'s logic with the Revit glue), and add inputs
-   until it has 6 ports (IN[0]..IN[5]).
+   the .dyn node, and add inputs until it has 6 ports (IN[0]..IN[5]).
 3. Add a Watch node.
 4. Wire inputs to IN[0..5] in listed order, Python `OUT` to the Watch.
 5. Select each input node, right-click -> **Is Input**; select the Watch -> **Is Output**.

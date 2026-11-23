@@ -16,21 +16,19 @@ there is no .NET project and no separate library.
 
 - Edit it as JSON and keep it valid. Everything lives in the PythonScriptNode `Code` string
   except the Revit glue.
-- Keep the nine value nodes in order (Order, Start corner, Row tolerance, Prefix, Start, Step,
-  Suffix, Digits, Dry run) flagged in **both** the graph `Inputs` block and
-  `View.NodeViews` (`IsSetAsInput`); keep the Watch flagged `IsSetAsOutput`. Otherwise Dynamo
-  Player drops the field.
+- Keep the six value nodes in order (Reverse, Prefix, Start, Step, Suffix, Dry run) flagged in
+  **both** the graph `Inputs` block and `View.NodeViews` (`IsSetAsInput`); keep the Watch
+  flagged `IsSetAsOutput`. Otherwise Dynamo Player drops the field.
 - Engine must stay `PythonNet3`; `CPython3` is the fallback if the node fails to open.
 - `verify_dyn.py` asserts these structural invariants, so a bad hand-edit fails the check.
 
 ## Ordering invariants (easy to break)
 
-- `click` must stay exactly as it was: selection set order, no geometry involved.
-- `rows` groups by room bounding-box centre; tolerance is always metres, converted to internal
-  feet. Corner `BL` = X ascending, Y ascending; the first letter picks Y direction, the second
-  picks X. Rooms without a bounding box are reported and excluded, never guessed at.
-- `number` sorts by the first digit run in the current Number and breaks ties on element id;
-  rooms with no digits go last and are listed in the report.
+- One row per run, by operator discipline. The tool never groups or detects rows.
+- The row's dominant axis is the larger of the selection's width and height; that axis is the
+  sort key. Do not add a tolerance or a corner field back in.
+- `Reverse` flips the sorted list; it is the only direction control.
+- Rooms without a bounding box are reported and excluded, never guessed at.
 - Ordering happens before the occupied scan and numbering, so it never changes which numbers
   are considered taken.
 
@@ -42,12 +40,12 @@ there is no .NET project and no separate library.
 - Occupied scan covers **all** model rooms except the selected ones, matched by `UniqueId`.
   Numbers are compared as integers (`A3` == `A003`); labels not matching the current affixes
   are not occupied.
-- One uniform width for the whole run: `max(digits, widest assigned)`, widened once and
-  reported. Never format per room.
+- Numbers are unpadded: `prefix + str(number) + suffix`. Do not reintroduce a digits input or
+  width logic.
 - Live runs write unique `ZZRN…` temp numbers, commit, then write final labels, so Revit never
   sees duplicates mid-run.
-- `Dry run = true` writes nothing and starts no transaction. Validate `start >= 0`,
-  `step >= 1`, `digits >= 1` and abort with a report.
+- `Dry run = true` writes nothing and starts no transaction. Validate `start >= 0` and
+  `step >= 1` and abort with a report.
 - Affixes are verbatim (no trim/normalise) and must be regex-escaped.
 - Every exception is caught and written to `OUT`; keep it that way so Dynamo shows the real
   traceback instead of only `PythonEvaluator.Evaluate failed`.
@@ -55,7 +53,8 @@ there is no .NET project and no separate library.
 ## Docs
 
 - `renumber-spec.md` is the functional contract; read it first. `test_cases.md` holds the
-  offline checks and the Revit acceptance fixtures A–P.
-- Out of scope by design — do not add without asking: serpentine order, ordering by aisle or
-  zone attribute, path-following order, linked models, Areas/MEP spaces, per-room suffixes,
-  descending sequences, level/view renumbering, presets.
+  offline checks and the Revit acceptance fixtures A–L.
+- Out of scope by design — do not add without asking: multi-row or serpentine ordering, row
+  tolerance, start-corner selection, ordering by existing number or attribute, padding,
+  path-following order, linked models, Areas/MEP spaces, per-room suffixes, descending
+  sequences, level/view renumbering, presets.

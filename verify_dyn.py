@@ -157,17 +157,7 @@ def _make_stub_modules():
     return manager
 
 
-INPUT_NAMES = [
-    "Order",
-    "Start corner",
-    "Row tolerance (m)",
-    "Prefix",
-    "Start",
-    "Step",
-    "Suffix",
-    "Digits",
-    "Dry run",
-]
+INPUT_NAMES = ["Reverse", "Prefix", "Start", "Step", "Suffix", "Dry run"]
 
 
 def load_dyn():
@@ -180,13 +170,13 @@ def load_dyn():
     assert node.get("Engine") == "PythonNet3", node.get("Engine")
 
     inputs = [n for n in graph["Nodes"] if n["NodeType"].endswith("InputNode")]
-    assert len(inputs) == 9, [n["NodeType"] for n in inputs]
-    assert len(node["Inputs"]) == 9, len(node["Inputs"])
+    assert len(inputs) == 6, [n["NodeType"] for n in inputs]
+    assert len(node["Inputs"]) == 6, len(node["Inputs"])
 
     names = [entry["Name"] for entry in graph["Inputs"]]
     assert names == INPUT_NAMES, names
     views = graph["View"]["NodeViews"]
-    assert sum(1 for v in views if v["IsSetAsInput"]) == 9, views
+    assert sum(1 for v in views if v["IsSetAsInput"]) == 6, views
     assert sum(1 for v in views if v["IsSetAsOutput"]) == 1, views
     assert any("Watch" in n.get("ConcreteType", "") for n in graph["Nodes"]), "no Watch"
     return node["Code"]
@@ -221,9 +211,8 @@ def run(rooms, selected, inputs, manager):
     return namespace["OUT"], doc, list(State.writes)
 
 
-def inputs(order="click", corner="BL", tolerance=3.0, prefix="A", start=1, step=1,
-           suffix="", digits=3, dry_run=True):
-    return [order, corner, tolerance, prefix, start, step, suffix, digits, dry_run]
+def inputs(reverse=False, prefix="A", start=1, step=1, suffix="", dry_run=True):
+    return [reverse, prefix, start, step, suffix, dry_run]
 
 
 def labels_of(doc):
@@ -243,94 +232,104 @@ def check(name, condition, detail=""):
         raise AssertionError("{}: {}".format(name, detail))
 
 
-def grid_rooms():
-    rooms = []
-    for row in range(3):
-        for column in range(4):
-            index = row * 4 + column
-            rooms.append(
-                FakeRoom("r{:02d}".format(index), x=metres(3.0 * column),
-                         y=metres(4.0 * row))
-            )
-    return rooms
+def row_of_four():
+    return [
+        FakeRoom("a", x=metres(0), y=metres(0.5)),
+        FakeRoom("b", x=metres(3), y=metres(0.2)),
+        FakeRoom("c", x=metres(6), y=metres(0.4)),
+        FakeRoom("d", x=metres(9), y=metres(0.1)),
+    ]
 
 
 def main():
     manager = _make_stub_modules()
 
-    # Base: click order, padded to 3 digits.
-    rooms = [FakeRoom("a"), FakeRoom("b"), FakeRoom("c")]
-    out, doc, _ = run(rooms, rooms, inputs(), manager)
-    check("base dry run", not State.writes and labels_of(doc) == ["", "", ""], labels_of(doc))
-    check("base report", "A001" in out and "A003" in out, out)
+    # A row is numbered along its length, regardless of the selection order.
+    rooms = row_of_four()
+    scrambled = [rooms[2], rooms[0], rooms[3], rooms[1]]
+    out, doc, _ = run(rooms, scrambled, inputs(), manager)
+    check("row dry run", not State.writes and labels_of(doc) == [""] * 4, labels_of(doc))
+    check("row order", [line.split("->")[1].split()[0] for line in out.splitlines() if "->" in line] == ["A1", "A2", "A3", "A4"], out)
+    check("row header", "Order: along the row" in out, out)
+    check("row position", "1 of 4" in out and "4 of 4" in out, out)
     check("dry run report", "(DRY RUN)" in out, out)
-    check("click order header", "Order: click order, 3 room(s)" in out, out)
 
-    # Base, live: temp numbers then final labels, no writes in dry run.
-    _, doc, writes = run(rooms, rooms, inputs(dry_run=False), manager)
-    check("live", labels_of(doc) == ["A001", "A002", "A003"], labels_of(doc))
-    check("live temp first", all(w[2].startswith("ZZRN") for w in writes[:3]), writes)
-    check("live final count", len(writes) == 6, writes)
+    # Live: temp numbers, then final labels.
+    _, doc, writes = run(rooms, scrambled, inputs(dry_run=False), manager)
+    check("live labels", labels_of(doc) == ["A1", "A2", "A3", "A4"], labels_of(doc))
+    check("live temp first", all(w[2].startswith("ZZRN") for w in writes[:4]), writes)
+    check("live final count", len(writes) == 8, writes)
 
-    # Step.
-    out, doc, _ = run(rooms, rooms, inputs(start=3, step=2), manager)
-    check("step report", "A003" in out and "A005" in out and "A007" in out, out)
+    # Reverse numbers from the other end.
+    out, doc, writes = run(rooms, scrambled, inputs(reverse=True, dry_run=False), manager)
+    check("reverse first room", assignment_order(writes, 4) == ["d", "c", "b", "a"], writes)
+    check("reverse header", "Order: along the row (reversed)" in out, out)
 
-    # Affixes carry separators.
-    out, doc, _ = run(rooms, rooms, inputs(prefix="A-", suffix="-E"), manager)
-    check("affixes", "A-001-E" in out and "A-003-E" in out, out)
+    # A vertical row is ordered by Y because the selection is taller than wide.
+    column = [
+        FakeRoom("p", x=metres(1), y=metres(6)),
+        FakeRoom("q", x=metres(1), y=metres(0)),
+        FakeRoom("r", x=metres(1), y=metres(3)),
+    ]
+    out, doc, writes = run(column, column, inputs(dry_run=False), manager)
+    check("vertical row", assignment_order(writes, 3) == ["q", "r", "p"], writes)
 
-    # Occupied candidates on non-selected rooms are skipped.
-    outer = [FakeRoom("x", "A002"), FakeRoom("y", "A004")]
+    # A wide row with Y jitter is still read along X, not by the jitter.
+    jittered = [
+        FakeRoom("j1", x=metres(0), y=metres(0)),
+        FakeRoom("j2", x=metres(20), y=metres(1.5)),
+        FakeRoom("j3", x=metres(10), y=metres(0.2)),
+    ]
+    out, doc, writes = run(jittered, jittered, inputs(dry_run=False), manager)
+    check("dominant axis", assignment_order(writes, 3) == ["j1", "j3", "j2"], writes)
+
+    # No padding: labels are plain integers in sequence.
+    twelve = [FakeRoom("n{:02d}".format(i), x=metres(3.0 * i)) for i in range(12)]
+    out, doc, _ = run(twelve, twelve, inputs(), manager)
+    check(
+        "unpadded",
+        all(label in out for label in ("A1", "A9", "A10", "A12"))
+        and "A01" not in out
+        and "A001" not in out,
+        out,
+    )
+
+    # Start, step and affixes.
+    out, doc, _ = run(rooms, rooms, inputs(prefix="A-", start=3, step=2, suffix="-E"), manager)
+    check("affixes", "A-3-E" in out and "A-5-E" in out and "A-9-E" in out, out)
+    check("start zero", "A0" in run(rooms, rooms, inputs(start=0), manager)[0], "no A0")
+
+    # Occupied candidates elsewhere in the model are skipped.
+    outer = [FakeRoom("x", "A2"), FakeRoom("y", "A4")]
     selected = [FakeRoom("1"), FakeRoom("2"), FakeRoom("3"), FakeRoom("4")]
     out, doc, _ = run(outer + selected, selected, inputs(), manager)
     check(
         "skip",
-        all(label in out for label in ("A001", "A003", "A005", "A006")),
+        all(label in out for label in ("A1", "A3", "A5", "A6")),
         out,
     )
-    check("skip report", "Skipped occupied: A002, A004" in out, out)
-    check("skip dry run", numbers(doc)[2:] == ["", "", "", ""], numbers(doc))
-    check("skip untouched", numbers(doc)[:2] == ["A002", "A004"], numbers(doc))
+    check("skip report", "Skipped occupied: A2, A4" in out, out)
+    check("skip untouched", numbers(doc)[:2] == ["A2", "A4"], numbers(doc))
 
     # Selected rooms' old numbers are freed.
-    rooms = [FakeRoom(str(i), "A{:03d}".format(i)) for i in range(1, 11)]
-    out, doc, _ = run(rooms, rooms, inputs(start=2), manager)
-    check("reuse", out.count("-> A") == 10 and "A011" in out, out)
-
-    # Overflow widens the whole run and warns.
-    three = [FakeRoom("p"), FakeRoom("q"), FakeRoom("r")]
-    out, doc, _ = run(three, three, inputs(start=998, step=2), manager)
-    check("widen", "A0998" in out and "A1000" in out and "A1002" in out, out)
-    check("widen warn", "WARN digits widened from 3 to 4" in out, out)
+    numbered = [FakeRoom(str(i), "A{}".format(i)) for i in range(1, 11)]
+    out, doc, _ = run(numbered, numbered, inputs(start=2), manager)
+    check("reuse", out.count("-> A") == 10 and "A11" in out, out)
 
     # Affix digits are not mistaken for the number; regex metachars escaped.
     outer = [FakeRoom("m", "A003")]
     selected = [FakeRoom("1")]
     out, doc, _ = run(outer + selected, selected, inputs(start=3), manager)
-    check("numeric match", "A004" in out, out)
+    check("numeric match", "A4" in out, out)
     outer = [FakeRoom("m", "AX001")]
     out, doc, _ = run(outer + selected, selected, inputs(prefix="A."), manager)
-    check("escape", "A.001" in out, out)
+    check("escape", "A.1" in out, out)
 
     # Validation aborts before any write.
     out, doc, writes = run(rooms, rooms, inputs(step=0, dry_run=False), manager)
     check("step validation", "Renumber aborted" in out and not writes, out)
     out, doc, writes = run(rooms, rooms, inputs(start=-1, dry_run=False), manager)
     check("start validation", "Renumber aborted" in out and not writes, out)
-    out, doc, writes = run(rooms, rooms, inputs(digits=0, dry_run=False), manager)
-    check("digits validation", "Renumber aborted" in out and not writes, out)
-
-    out, doc, writes = run(rooms, rooms, inputs(order="grid", dry_run=False), manager)
-    check("order validation", "Order must be click, rows or number" in out and not writes, out)
-    out, doc, writes = run(rooms, rooms, inputs(order="rows", corner="XX", dry_run=False), manager)
-    check("corner validation", "Start corner must be BL, BR, TL or TR" in out and not writes, out)
-    out, doc, writes = run(rooms, rooms, inputs(order="rows", tolerance=0, dry_run=False), manager)
-    check("tolerance validation", "Row tolerance must be greater than 0" in out and not writes, out)
-
-    # Order and geometric fields are ignored outside rows mode.
-    out, doc, _ = run(rooms, rooms, inputs(order="click", corner="XX", tolerance=0), manager)
-    check("click ignores geometry", "A001" in out and "Renumber aborted" not in out, out)
 
     # Unplaced room skipped, placed room still renumbered.
     unplaced = FakeRoom("u", "X", area=0)
@@ -339,97 +338,15 @@ def main():
     check("unplaced report", "SKIP unplaced or zero-area room" in out, out)
     check("unplaced dry run", labels_of(doc) == ["X", ""], labels_of(doc))
 
-    # Empty selection.
-    out, _, writes = run([], [], inputs(dry_run=False), manager)
-    check("empty", "no placed Rooms" in out and not writes, out)
-
-    # --- rows mode: 3 rows of 4 booths, one metre of slack each way ----------
-
-    expected = {
-        "BL": ["r00", "r01", "r02", "r03",
-               "r04", "r05", "r06", "r07",
-               "r08", "r09", "r10", "r11"],
-        "BR": ["r03", "r02", "r01", "r00",
-               "r07", "r06", "r05", "r04",
-               "r11", "r10", "r09", "r08"],
-        "TL": ["r08", "r09", "r10", "r11",
-               "r04", "r05", "r06", "r07",
-               "r00", "r01", "r02", "r03"],
-        "TR": ["r11", "r10", "r09", "r08",
-               "r07", "r06", "r05", "r04",
-               "r03", "r02", "r01", "r00"],
-    }
-    for corner, order in expected.items():
-        rooms = grid_rooms()
-        out, doc, writes = run(
-            rooms, rooms, inputs(order="rows", corner=corner, dry_run=False), manager
-        )
-        check(
-            "rows " + corner,
-            assignment_order(writes, 12) == order,
-            "{} != {}".format(assignment_order(writes, 12), order),
-        )
-
-    rooms = grid_rooms()
-    out, doc, _ = run(rooms, rooms, inputs(order="rows", corner="BL"), manager)
-    check(
-        "rows header",
-        "Order: rows (corner BL, tolerance 3 m), 12 room(s)" in out,
-        out,
-    )
-    check("rows position", "row 1, pos 1" in out and "row 3, pos 4" in out, out)
-    check("rows labels", "A001" in out and "A012" in out, out)
-
-    # Tolerance merges rows within the distance and splits them when tight.
-    merged = [
-        FakeRoom("a", x=metres(0), y=metres(0)),
-        FakeRoom("b", x=metres(5), y=metres(0.5)),
-        FakeRoom("c", x=metres(0), y=metres(1)),
-    ]
-    out, doc, writes = run(
-        merged, merged, inputs(order="rows", corner="BL", tolerance=3, dry_run=False),
-        manager,
-    )
-    check("tolerance merge", assignment_order(writes, 3) == ["a", "c", "b"],
-          assignment_order(writes, 3))
-    out, doc, writes = run(
-        merged, merged, inputs(order="rows", corner="BL", tolerance=0.5, dry_run=False),
-        manager,
-    )
-    check("tolerance split", assignment_order(writes, 3) == ["a", "b", "c"],
-          assignment_order(writes, 3))
-
     # A room without a bounding box cannot be ordered and is reported.
     no_box = [FakeRoom("u", has_box=False), FakeRoom("v", x=metres(1))]
-    out, doc, writes = run(
-        no_box, no_box, inputs(order="rows", dry_run=False), manager
-    )
+    out, doc, writes = run(no_box, no_box, inputs(dry_run=False), manager)
     check("no box note", "SKIP no bounding box, cannot order (id u)" in out, out)
     check("no box excluded", assignment_order(writes, 1) == ["v"], writes)
 
-    # --- number mode: sort by the digits already in the Number field ---------
-
-    numbered = [
-        FakeRoom("p", "B-2"),
-        FakeRoom("q", "A010"),
-        FakeRoom("r", ""),
-        FakeRoom("s", "LOBBY"),
-        FakeRoom("t", "A003"),
-    ]
-    out, doc, writes = run(
-        numbered, numbered, inputs(order="number", dry_run=False), manager
-    )
-    check(
-        "number order",
-        assignment_order(writes, 5) == ["p", "t", "q", "r", "s"],
-        assignment_order(writes, 5),
-    )
-    check("number header", "Order: existing number, 5 room(s)" in out, out)
-    check(
-        "number no digits",
-        "No number to sort by (numbered last): id r, id s" in out,
-        out,
-    )
+    # Empty selection.
+    out, _, writes = run([], [], inputs(dry_run=False), manager)
+    check("empty", "no placed Rooms" in out and not writes, out)
 
     print("verify_dyn: all checks passed")
 

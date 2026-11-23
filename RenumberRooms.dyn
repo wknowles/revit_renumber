@@ -1,12 +1,36 @@
 {
   "Uuid": "1afa78d1efcd438c8c4ce42d8e94912f",
   "IsCustomNode": false,
-  "Description": "Renumber selected exhibition booth Rooms: prefix, start, step, suffix, dry run.",
+  "Description": "Renumber selected exhibition booth Rooms: order, prefix, start, step, suffix, dry run.",
   "Name": "RenumberRooms",
   "ElementResolver": {
     "ResolutionMap": {}
   },
   "Inputs": [
+    {
+      "Id": "1e6886f6ede542348711d4e4e9be6840",
+      "Name": "Order",
+      "Type": "string",
+      "Type2": "string",
+      "Value": "rows",
+      "Description": "click = selection order, rows = drag selection read in rows, number = sorted by the current number"
+    },
+    {
+      "Id": "d15b4cc445a9496797414002fa01df19",
+      "Name": "Start corner",
+      "Type": "string",
+      "Type2": "string",
+      "Value": "BL",
+      "Description": "Corner the selection starts from: BL, BR, TL or TR (rows mode)"
+    },
+    {
+      "Id": "7022279a708e483e8157c8adb6241505",
+      "Name": "Row tolerance (m)",
+      "Type": "number",
+      "Type2": "number",
+      "Value": "3",
+      "Description": "Rooms within this distance in metres count as the same row (rows mode)"
+    },
     {
       "Id": "ad682a145e70458b87659c4678d3d24b",
       "Name": "Prefix",
@@ -66,6 +90,67 @@
     }
   ],
   "Nodes": [
+    {
+      "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
+      "NodeType": "StringInputNode",
+      "InputValue": "rows",
+      "Id": "1e6886f6ede542348711d4e4e9be6840",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "222835a2c7c64c528448304565d3b186",
+          "Name": "",
+          "Description": "string",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "click = selection order, rows = drag selection read in rows, number = sorted by the current number"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
+      "NodeType": "StringInputNode",
+      "InputValue": "BL",
+      "Id": "d15b4cc445a9496797414002fa01df19",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "bdcdd12e702d4ebb8063ba48be2bb544",
+          "Name": "",
+          "Description": "string",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Corner the selection starts from: BL, BR, TL or TR (rows mode)"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.DoubleInput, CoreNodeModels",
+      "NodeType": "NumberInputNode",
+      "InputValue": 3.0,
+      "Id": "7022279a708e483e8157c8adb6241505",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "3805be91cf674d4db9a15fcd78861366",
+          "Name": "",
+          "Description": "number",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Rooms within this distance in metres count as the same row (rows mode)",
+      "NumberType": "Double"
+    },
     {
       "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
       "NodeType": "StringInputNode",
@@ -192,14 +277,14 @@
     {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "# Renumber exhibition booth Rooms.\n# IN[0]=prefix  IN[1]=start  IN[2]=step  IN[3]=suffix  IN[4]=digits  IN[5]=dry run\n#\n# Rooms are identified by category (OST_Rooms) instead of the\n# Autodesk.Revit.DB.Architecture.Room type, which some Dynamo Python engines\n# fail to resolve. Any exception is written to OUT so Dynamo shows the real\n# error instead of only \"PythonEvaluator.Evaluate failed\".\nimport traceback\n\nOUT = \"\"\n\ntry:\n    import re\n    import uuid\n\n    import clr\n\n    for assembly_name in (\"RevitAPI\", \"RevitAPIUI\", \"RevitServices\"):\n        try:\n            clr.AddReference(assembly_name)\n        except Exception:\n            pass\n\n    from Autodesk.Revit.DB import (\n        BuiltInCategory,\n        BuiltInParameter,\n        FilteredElementCollector,\n        Transaction,\n    )\n    from RevitServices.Persistence import DocumentManager\n    from RevitServices.Transactions import TransactionManager\n\n    doc = DocumentManager.Instance.CurrentDBDocument\n    uidoc = DocumentManager.Instance.CurrentUIDocument\n\n    def as_int(value, fallback):\n        try:\n            return int(round(float(value)))\n        except (TypeError, ValueError):\n            return fallback\n\n    def format_label(prefix, number, width, suffix):\n        return \"{}{:0{}d}{}\".format(prefix, number, width, suffix)\n\n    def id_value(element_id):\n        try:\n            return element_id.Value\n        except AttributeError:\n            return element_id.IntegerValue\n\n    def element_id(element):\n        return id_value(element.Id)\n\n    room_category_id = id_value(\n        doc.Settings.Categories.get_Item(BuiltInCategory.OST_Rooms).Id\n    )\n\n    def is_room(element):\n        if element is None or element.Category is None:\n            return False\n        return id_value(element.Category.Id) == room_category_id\n\n    def number_parameter(room):\n        return room.get_Parameter(BuiltInParameter.ROOM_NUMBER)\n\n    def area_parameter(room):\n        return room.get_Parameter(BuiltInParameter.ROOM_AREA)\n\n    def run():\n        prefix = \"\" if IN[0] is None else str(IN[0])\n        start = as_int(IN[1], 1)\n        step = as_int(IN[2], 1)\n        suffix = \"\" if IN[3] is None else str(IN[3])\n        digits = as_int(IN[4], 3)\n        dry_run = bool(IN[5])\n\n        problems = []\n        if step < 1:\n            problems.append(\"Step must be at least 1 (got {}).\".format(step))\n        if start < 0:\n            problems.append(\"Start must be 0 or greater (got {}).\".format(start))\n        if digits < 1:\n            problems.append(\"Digits must be at least 1 (got {}).\".format(digits))\n        if problems:\n            return \"Renumber aborted:\\n  \" + \"\\n  \".join(problems)\n\n        selected = [doc.GetElement(i) for i in uidoc.Selection.GetElementIds()]\n        selected = [e for e in selected if is_room(e)]\n\n        rooms = []\n        notes = []\n        for room in selected:\n            area = area_parameter(room)\n            if area is None or area.AsDouble() <= 0:\n                notes.append(\n                    \"SKIP unplaced or zero-area room (id {})\".format(element_id(room))\n                )\n            elif number_parameter(room) is None:\n                notes.append(\n                    \"SKIP room without a Number parameter (id {})\".format(element_id(room))\n                )\n            else:\n                rooms.append(room)\n\n        if not rooms:\n            return \"Renumber: no placed Rooms in the selection. Nothing changed.\"\n\n        pattern = re.compile(\"^\" + re.escape(prefix) + r\"(\\d+)\" + re.escape(suffix) + \"$\")\n\n        selected_uids = set(room.UniqueId for room in rooms)\n        occupied = set()\n        collector = FilteredElementCollector(doc)\n        collector = collector.OfCategory(BuiltInCategory.OST_Rooms)\n        collector = collector.WhereElementIsNotElementType()\n        for other in collector:\n            if other.UniqueId in selected_uids:\n                continue\n            parameter = other.get_Parameter(BuiltInParameter.ROOM_NUMBER)\n            label = (parameter.AsString() if parameter is not None else \"\") or \"\"\n            match = pattern.match(label)\n            if match:\n                occupied.add(int(match.group(1)))\n\n        cursor = start\n        numbers = []\n        skipped = []\n        for _ in rooms:\n            number = cursor\n            guard = 0\n            while number in occupied:\n                skipped.append(number)\n                number += step\n                guard += 1\n                if guard > 100000:\n                    return \"Renumber aborted: too many occupied numbers, check Start and Step.\"\n            numbers.append(number)\n            cursor = number + step\n\n        width = max([digits] + [len(str(n)) for n in numbers])\n        if width > digits:\n            notes.append(\n                \"WARN digits widened from {} to {} for a uniform label.\".format(digits, width)\n            )\n\n        labels = [format_label(prefix, n, width, suffix) for n in numbers]\n        if len(set(labels)) != len(labels):\n            return \"Renumber aborted: computed labels are not unique.\"\n\n        old_labels = [(number_parameter(room).AsString() or \"\") for room in rooms]\n\n        failed = []\n        if not dry_run:\n            TransactionManager.Instance.ForceCloseTransaction()\n\n            temp = Transaction(doc, \"Renumber rooms - temporary numbers\")\n            temp.Start()\n            token = \"ZZRN\" + uuid.uuid4().hex[:8]\n            for index, room in enumerate(rooms):\n                try:\n                    number_parameter(room).Set(\"{}-{}\".format(token, index))\n                except Exception as error:\n                    failed.append(\n                        \"FAIL temp number for id {}: {}\".format(element_id(room), error)\n                    )\n            temp.Commit()\n\n            final = Transaction(doc, \"Renumber rooms - final numbers\")\n            final.Start()\n            for room, label in zip(rooms, labels):\n                try:\n                    number_parameter(room).Set(label)\n                except Exception as error:\n                    failed.append(\n                        \"FAIL number for id {}: {}\".format(element_id(room), error)\n                    )\n            final.Commit()\n\n        lines = []\n        lines.append(\"Renumber Rooms{}\".format(\" (DRY RUN)\" if dry_run else \"\"))\n        lines.append(\n            \"prefix='{}'  start={}  step={}  suffix='{}'  digits={}\".format(\n                prefix, start, step, suffix, digits\n            )\n        )\n        lines.append(\"Order: selection order, {} room(s)\".format(len(rooms)))\n        lines.append(\"\")\n        for index, room, old, label in zip(\n            range(1, len(rooms) + 1), rooms, old_labels, labels\n        ):\n            lines.append(\n                \"{:>3}  id {:<10}  {:<14} -> {}\".format(\n                    index, str(element_id(room)), old, label\n                )\n            )\n        if skipped:\n            lines.append(\"\")\n            lines.append(\n                \"Skipped occupied: \"\n                + \", \".join(format_label(prefix, n, width, suffix) for n in skipped)\n            )\n        if notes or failed:\n            lines.append(\"\")\n            lines.extend(notes)\n            lines.extend(failed)\n        lines.append(\"\")\n        lines.append(\n            \"{} {} room(s).\".format(\n                \"Would renumber\" if dry_run else \"Renumbered\", len(rooms)\n            )\n        )\n        return \"\\n\".join(lines)\n\n    OUT = run()\nexcept Exception:\n    OUT = \"Renumber failed:\\n\" + traceback.format_exc()\n",
+      "Code": "# Renumber exhibition booth Rooms.\n# IN[0]=order  IN[1]=start corner  IN[2]=row tolerance (m)\n# IN[3]=prefix  IN[4]=start  IN[5]=step  IN[6]=suffix  IN[7]=digits\n# IN[8]=dry run\n#\n# Rooms are identified by category (OST_Rooms) instead of the\n# Autodesk.Revit.DB.Architecture.Room type, which some Dynamo Python engines\n# fail to resolve. Any exception is written to OUT so Dynamo shows the real\n# error instead of only \"PythonEvaluator.Evaluate failed\".\nimport traceback\n\nOUT = \"\"\n\ntry:\n    import re\n    import uuid\n\n    import clr\n\n    for assembly_name in (\"RevitAPI\", \"RevitAPIUI\", \"RevitServices\"):\n        try:\n            clr.AddReference(assembly_name)\n        except Exception:\n            pass\n\n    from Autodesk.Revit.DB import (\n        BuiltInCategory,\n        BuiltInParameter,\n        FilteredElementCollector,\n        Transaction,\n    )\n    from RevitServices.Persistence import DocumentManager\n    from RevitServices.Transactions import TransactionManager\n\n    doc = DocumentManager.Instance.CurrentDBDocument\n    uidoc = DocumentManager.Instance.CurrentUIDocument\n\n    FEET_PER_METRE = 3.280839895013123\n    MODES = (\"click\", \"rows\", \"number\")\n    CORNERS = (\"BL\", \"BR\", \"TL\", \"TR\")\n\n    def as_int(value, fallback):\n        try:\n            return int(round(float(value)))\n        except (TypeError, ValueError):\n            return fallback\n\n    def as_float(value, fallback):\n        try:\n            return float(value)\n        except (TypeError, ValueError):\n            return fallback\n\n    def as_text(value, fallback):\n        return fallback if value is None else str(value)\n\n    def format_number(value):\n        return \"{:g}\".format(value)\n\n    def format_label(prefix, number, width, suffix):\n        return \"{}{:0{}d}{}\".format(prefix, number, width, suffix)\n\n    def id_value(element_id):\n        try:\n            return element_id.Value\n        except AttributeError:\n            return element_id.IntegerValue\n\n    def element_id(element):\n        return id_value(element.Id)\n\n    room_category_id = id_value(\n        doc.Settings.Categories.get_Item(BuiltInCategory.OST_Rooms).Id\n    )\n\n    def is_room(element):\n        if element is None or element.Category is None:\n            return False\n        return id_value(element.Category.Id) == room_category_id\n\n    def number_parameter(room):\n        return room.get_Parameter(BuiltInParameter.ROOM_NUMBER)\n\n    def area_parameter(room):\n        return room.get_Parameter(BuiltInParameter.ROOM_AREA)\n\n    def room_centre(room):\n        box = room.get_BoundingBox(None)\n        if box is None:\n            return None\n        return ((box.Min.X + box.Max.X) / 2.0, (box.Min.Y + box.Max.Y) / 2.0)\n\n    def order_by_rows(rooms, corner, tolerance_m, notes):\n        tolerance = tolerance_m * FEET_PER_METRE\n        placed = []\n        for room in rooms:\n            centre = room_centre(room)\n            if centre is None:\n                notes.append(\n                    \"SKIP no bounding box, cannot order (id {})\".format(\n                        element_id(room)\n                    )\n                )\n            else:\n                placed.append((centre[1], centre[0], room))\n        if not placed:\n            return [], {}\n\n        placed.sort(key=lambda item: (item[0], item[1], element_id(item[2])))\n\n        rows = []\n        for y, x, room in placed:\n            if not rows or abs(y - rows[-1][0]) > tolerance:\n                rows.append([y, []])\n            rows[-1][1].append((x, y, room))\n\n        rows.sort(key=lambda row: row[0], reverse=corner[0] == \"T\")\n        ordered = []\n        positions = {}\n        for row_index, (_, members) in enumerate(rows, 1):\n            members.sort(\n                key=lambda item: (item[0], item[1], element_id(item[2])),\n                reverse=corner[1] == \"R\",\n            )\n            for position, (_, _, room) in enumerate(members, 1):\n                ordered.append(room)\n                positions[element_id(room)] = \"row {}, pos {}\".format(\n                    row_index, position\n                )\n        return ordered, positions\n\n    def order_by_number(rooms, notes):\n        keyed = []\n        without = []\n        for room in rooms:\n            text = number_parameter(room).AsString() or \"\"\n            match = re.search(r\"\\d+\", text)\n            if match:\n                keyed.append((int(match.group(0)), element_id(room), room))\n            else:\n                without.append(room)\n        keyed.sort(key=lambda item: (item[0], item[1]))\n        without.sort(key=element_id)\n        if without:\n            notes.append(\n                \"No number to sort by (numbered last): \"\n                + \", \".join(\"id {}\".format(element_id(room)) for room in without)\n            )\n        return [item[2] for item in keyed] + without, {}\n\n    def run():\n        order = as_text(IN[0], \"rows\").strip().lower()\n        corner = as_text(IN[1], \"BL\").strip().upper()\n        tolerance_m = as_float(IN[2], 3.0)\n        prefix = as_text(IN[3], \"\")\n        start = as_int(IN[4], 1)\n        step = as_int(IN[5], 1)\n        suffix = as_text(IN[6], \"\")\n        digits = as_int(IN[7], 3)\n        dry_run = bool(IN[8])\n\n        problems = []\n        if order not in MODES:\n            problems.append(\n                \"Order must be click, rows or number (got '{}').\".format(order)\n            )\n        if order == \"rows\":\n            if corner not in CORNERS:\n                problems.append(\n                    \"Start corner must be BL, BR, TL or TR (got '{}').\".format(corner)\n                )\n            if tolerance_m <= 0:\n                problems.append(\n                    \"Row tolerance must be greater than 0 (got {}).\".format(\n                        format_number(tolerance_m)\n                    )\n                )\n        if step < 1:\n            problems.append(\"Step must be at least 1 (got {}).\".format(step))\n        if start < 0:\n            problems.append(\"Start must be 0 or greater (got {}).\".format(start))\n        if digits < 1:\n            problems.append(\"Digits must be at least 1 (got {}).\".format(digits))\n        if problems:\n            return \"Renumber aborted:\\n  \" + \"\\n  \".join(problems)\n\n        selected = [doc.GetElement(i) for i in uidoc.Selection.GetElementIds()]\n        selected = [e for e in selected if is_room(e)]\n\n        rooms = []\n        notes = []\n        for room in selected:\n            area = area_parameter(room)\n            if area is None or area.AsDouble() <= 0:\n                notes.append(\n                    \"SKIP unplaced or zero-area room (id {})\".format(element_id(room))\n                )\n            elif number_parameter(room) is None:\n                notes.append(\n                    \"SKIP room without a Number parameter (id {})\".format(element_id(room))\n                )\n            else:\n                rooms.append(room)\n\n        if not rooms:\n            return \"Renumber: no placed Rooms in the selection. Nothing changed.\"\n\n        positions = {}\n        if order == \"rows\":\n            rooms, positions = order_by_rows(rooms, corner, tolerance_m, notes)\n            if not rooms:\n                return (\n                    \"Renumber: no selected Rooms have a bounding box. \"\n                    \"Nothing changed.\"\n                )\n        elif order == \"number\":\n            rooms, positions = order_by_number(rooms, notes)\n\n        pattern = re.compile(\"^\" + re.escape(prefix) + r\"(\\d+)\" + re.escape(suffix) + \"$\")\n\n        selected_uids = set(room.UniqueId for room in rooms)\n        occupied = set()\n        collector = FilteredElementCollector(doc)\n        collector = collector.OfCategory(BuiltInCategory.OST_Rooms)\n        collector = collector.WhereElementIsNotElementType()\n        for other in collector:\n            if other.UniqueId in selected_uids:\n                continue\n            parameter = other.get_Parameter(BuiltInParameter.ROOM_NUMBER)\n            label = (parameter.AsString() if parameter is not None else \"\") or \"\"\n            match = pattern.match(label)\n            if match:\n                occupied.add(int(match.group(1)))\n\n        cursor = start\n        numbers = []\n        skipped = []\n        for _ in rooms:\n            number = cursor\n            guard = 0\n            while number in occupied:\n                skipped.append(number)\n                number += step\n                guard += 1\n                if guard > 100000:\n                    return \"Renumber aborted: too many occupied numbers, check Start and Step.\"\n            numbers.append(number)\n            cursor = number + step\n\n        width = max([digits] + [len(str(n)) for n in numbers])\n        if width > digits:\n            notes.append(\n                \"WARN digits widened from {} to {} for a uniform label.\".format(digits, width)\n            )\n\n        labels = [format_label(prefix, n, width, suffix) for n in numbers]\n        if len(set(labels)) != len(labels):\n            return \"Renumber aborted: computed labels are not unique.\"\n\n        old_labels = [(number_parameter(room).AsString() or \"\") for room in rooms]\n\n        failed = []\n        if not dry_run:\n            TransactionManager.Instance.ForceCloseTransaction()\n\n            temp = Transaction(doc, \"Renumber rooms - temporary numbers\")\n            temp.Start()\n            token = \"ZZRN\" + uuid.uuid4().hex[:8]\n            for index, room in enumerate(rooms):\n                try:\n                    number_parameter(room).Set(\"{}-{}\".format(token, index))\n                except Exception as error:\n                    failed.append(\n                        \"FAIL temp number for id {}: {}\".format(element_id(room), error)\n                    )\n            temp.Commit()\n\n            final = Transaction(doc, \"Renumber rooms - final numbers\")\n            final.Start()\n            for room, label in zip(rooms, labels):\n                try:\n                    number_parameter(room).Set(label)\n                except Exception as error:\n                    failed.append(\n                        \"FAIL number for id {}: {}\".format(element_id(room), error)\n                    )\n            final.Commit()\n\n        lines = []\n        lines.append(\"Renumber Rooms{}\".format(\" (DRY RUN)\" if dry_run else \"\"))\n        lines.append(\n            \"prefix='{}'  start={}  step={}  suffix='{}'  digits={}\".format(\n                prefix, start, step, suffix, digits\n            )\n        )\n        if order == \"rows\":\n            lines.append(\n                \"Order: rows (corner {}, tolerance {} m), {} room(s)\".format(\n                    corner, format_number(tolerance_m), len(rooms)\n                )\n            )\n        elif order == \"number\":\n            lines.append(\"Order: existing number, {} room(s)\".format(len(rooms)))\n        else:\n            lines.append(\"Order: click order, {} room(s)\".format(len(rooms)))\n        lines.append(\"\")\n        for index, room, old, label in zip(\n            range(1, len(rooms) + 1), rooms, old_labels, labels\n        ):\n            line = \"{:>3}  id {:<10}  {:<14} -> {}\".format(\n                index, str(element_id(room)), old, label\n            )\n            position = positions.get(element_id(room))\n            if position:\n                line += \"    \" + position\n            lines.append(line)\n        if skipped:\n            lines.append(\"\")\n            lines.append(\n                \"Skipped occupied: \"\n                + \", \".join(format_label(prefix, n, width, suffix) for n in skipped)\n            )\n        if notes or failed:\n            lines.append(\"\")\n            lines.extend(notes)\n            lines.extend(failed)\n        lines.append(\"\")\n        lines.append(\n            \"{} {} room(s).\".format(\n                \"Would renumber\" if dry_run else \"Renumbered\", len(rooms)\n            )\n        )\n        return \"\\n\".join(lines)\n\n    OUT = run()\nexcept Exception:\n    OUT = \"Renumber failed:\\n\" + traceback.format_exc()\n",
       "Engine": "PythonNet3",
       "EngineName": "PythonNet3",
       "VariableInputPorts": true,
       "Id": "b82074e0601d499bbbf398201895e6f7",
       "Inputs": [
         {
-          "Id": "9d790e6052e346e69aa5cb4082c47e54",
+          "Id": "fbb0d0e5ee5d48bab3f98a0ed7fe1c45",
           "Name": "IN[0]",
           "Description": "Input #0",
           "UsingDefaultValue": false,
@@ -208,7 +293,7 @@
           "KeepListStructure": false
         },
         {
-          "Id": "f9a2f25f13d84c729dfeb91e0df339c5",
+          "Id": "eeb17eb306664b1a9035e14c3222acf2",
           "Name": "IN[1]",
           "Description": "Input #1",
           "UsingDefaultValue": false,
@@ -217,7 +302,7 @@
           "KeepListStructure": false
         },
         {
-          "Id": "1bd9b75a35364b3da9e4f9eb6771e498",
+          "Id": "ae8d08590b9549e6aa6b278e08a42c7e",
           "Name": "IN[2]",
           "Description": "Input #2",
           "UsingDefaultValue": false,
@@ -226,7 +311,7 @@
           "KeepListStructure": false
         },
         {
-          "Id": "ede86267974040f997a8f3a544b43eb1",
+          "Id": "3c722566f40347d89dce7f9f6a827b24",
           "Name": "IN[3]",
           "Description": "Input #3",
           "UsingDefaultValue": false,
@@ -235,7 +320,7 @@
           "KeepListStructure": false
         },
         {
-          "Id": "82a3840e6a884b82b56328534bfa3873",
+          "Id": "849372a89ce04c76b5c2766d7ad682f1",
           "Name": "IN[4]",
           "Description": "Input #4",
           "UsingDefaultValue": false,
@@ -244,9 +329,36 @@
           "KeepListStructure": false
         },
         {
-          "Id": "9dae20f6bfb54ecaac07a2eee988b8c4",
+          "Id": "0034d2c5945e4b54a7c47b04b779e99b",
           "Name": "IN[5]",
           "Description": "Input #5",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "3eb28b5dfec04d47aeb85f80cd7cc741",
+          "Name": "IN[6]",
+          "Description": "Input #6",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "54bf4fd69fe44c86952dc9be8047aea2",
+          "Name": "IN[7]",
+          "Description": "Input #7",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "e1d1ab4a284e4eb09482cf3aef1ddf61",
+          "Name": "IN[8]",
+          "Description": "Input #8",
           "UsingDefaultValue": false,
           "Level": 2,
           "UseLevels": false,
@@ -299,45 +411,63 @@
   ],
   "Connectors": [
     {
+      "Start": "222835a2c7c64c528448304565d3b186",
+      "End": "fbb0d0e5ee5d48bab3f98a0ed7fe1c45",
+      "Id": "603c26505fd24c6e97b59de6313a39db",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "bdcdd12e702d4ebb8063ba48be2bb544",
+      "End": "eeb17eb306664b1a9035e14c3222acf2",
+      "Id": "49ee29b8e7764c109b5afea099499c7f",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "3805be91cf674d4db9a15fcd78861366",
+      "End": "ae8d08590b9549e6aa6b278e08a42c7e",
+      "Id": "712c16ba251c486088d9c8f392c33ccb",
+      "IsHidden": "False"
+    },
+    {
       "Start": "c833f71113b94bfc89463fb57a4f7ca0",
-      "End": "9d790e6052e346e69aa5cb4082c47e54",
-      "Id": "0ec8936b5eba45b293fb8ecbc61df43d",
+      "End": "3c722566f40347d89dce7f9f6a827b24",
+      "Id": "3b0543a18dc84d939f1b0d302c7027e8",
       "IsHidden": "False"
     },
     {
       "Start": "81a3b7e8beef4c618e645da926ef1146",
-      "End": "f9a2f25f13d84c729dfeb91e0df339c5",
-      "Id": "72ee010b042e4360b5d6f64b0bc9f3e0",
+      "End": "849372a89ce04c76b5c2766d7ad682f1",
+      "Id": "f9994dc4f5e54cf2806f5ae032ee4300",
       "IsHidden": "False"
     },
     {
       "Start": "e0496fc33a0d496cb9146ee19f5507d9",
-      "End": "1bd9b75a35364b3da9e4f9eb6771e498",
-      "Id": "69f08e3a0bf74f24845be836e7259238",
+      "End": "0034d2c5945e4b54a7c47b04b779e99b",
+      "Id": "fa1cecc1f169402d84a142e5e0b0434a",
       "IsHidden": "False"
     },
     {
       "Start": "856f1213fd3e4d18ac58c290b54697f1",
-      "End": "ede86267974040f997a8f3a544b43eb1",
-      "Id": "cc77fe721f8d4c988178c3f1e81dc8bd",
+      "End": "3eb28b5dfec04d47aeb85f80cd7cc741",
+      "Id": "fe556422a825427bbf50e77496e3392c",
       "IsHidden": "False"
     },
     {
       "Start": "06f6fc345d2b4a20bb28b085f76d7364",
-      "End": "82a3840e6a884b82b56328534bfa3873",
-      "Id": "a63b97b1f183492ebcb5e60349e818d4",
+      "End": "54bf4fd69fe44c86952dc9be8047aea2",
+      "Id": "db5b1bcb811e4747b74c97f592c1328d",
       "IsHidden": "False"
     },
     {
       "Start": "75a91b1cd1c14b998ca8491ee9fc2d59",
-      "End": "9dae20f6bfb54ecaac07a2eee988b8c4",
-      "Id": "85607c0d27c743e9a95de96e48454d9a",
+      "End": "e1d1ab4a284e4eb09482cf3aef1ddf61",
+      "Id": "c40af988ba6c4821b221ee061f0726ad",
       "IsHidden": "False"
     },
     {
       "Start": "a3748f52d73b4e42bac0c7f0da971c78",
       "End": "2f3085c407f2455b95c95a3d02a4139b",
-      "Id": "88cb29046d5d4ff8bd2447acf6f1c150",
+      "Id": "76672cded0ac421b831528f9a689d06a",
       "IsHidden": "False"
     }
   ],
@@ -371,13 +501,43 @@
     "NodeViews": [
       {
         "ShowGeometry": true,
+        "Excluded": false,
+        "Name": "Order",
+        "Id": "1e6886f6ede542348711d4e4e9be6840",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "X": -820,
+        "Y": -430
+      },
+      {
+        "ShowGeometry": true,
+        "Excluded": false,
+        "Name": "Start corner",
+        "Id": "d15b4cc445a9496797414002fa01df19",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "X": -820,
+        "Y": -320
+      },
+      {
+        "ShowGeometry": true,
+        "Excluded": false,
+        "Name": "Row tolerance (m)",
+        "Id": "7022279a708e483e8157c8adb6241505",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "X": -820,
+        "Y": -210
+      },
+      {
+        "ShowGeometry": true,
         "Name": "Prefix",
         "Id": "ad682a145e70458b87659c4678d3d24b",
         "IsSetAsInput": true,
         "IsSetAsOutput": false,
         "Excluded": false,
         "X": -820,
-        "Y": -320
+        "Y": -100
       },
       {
         "ShowGeometry": true,
@@ -387,7 +547,7 @@
         "IsSetAsOutput": false,
         "Excluded": false,
         "X": -820,
-        "Y": -210
+        "Y": 10
       },
       {
         "ShowGeometry": true,
@@ -397,7 +557,7 @@
         "IsSetAsOutput": false,
         "Excluded": false,
         "X": -820,
-        "Y": -100
+        "Y": 120
       },
       {
         "ShowGeometry": true,
@@ -407,7 +567,7 @@
         "IsSetAsOutput": false,
         "Excluded": false,
         "X": -820,
-        "Y": 10
+        "Y": 230
       },
       {
         "ShowGeometry": true,
@@ -417,7 +577,7 @@
         "IsSetAsOutput": false,
         "Excluded": false,
         "X": -820,
-        "Y": 120
+        "Y": 340
       },
       {
         "ShowGeometry": true,
@@ -427,7 +587,7 @@
         "IsSetAsOutput": false,
         "Excluded": false,
         "X": -820,
-        "Y": 230
+        "Y": 450
       },
       {
         "ShowGeometry": true,
@@ -437,7 +597,7 @@
         "IsSetAsOutput": false,
         "Excluded": false,
         "X": -340,
-        "Y": -320
+        "Y": -430
       },
       {
         "ShowGeometry": true,
@@ -447,7 +607,7 @@
         "IsSetAsOutput": true,
         "Excluded": false,
         "X": 260,
-        "Y": -320
+        "Y": -430
       }
     ],
     "X": -600.0,

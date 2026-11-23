@@ -16,11 +16,23 @@ there is no .NET project and no separate library.
 
 - Edit it as JSON and keep it valid. Everything lives in the PythonScriptNode `Code` string
   except the Revit glue.
-- Keep the six value nodes in order (Prefix, Start, Step, Suffix, Digits, Dry run) flagged in
-  **both** the graph `Inputs` block and `View.NodeViews` (`IsSetAsInput`); keep the Watch
-  flagged `IsSetAsOutput`. Otherwise Dynamo Player drops the field.
+- Keep the nine value nodes in order (Order, Start corner, Row tolerance, Prefix, Start, Step,
+  Suffix, Digits, Dry run) flagged in **both** the graph `Inputs` block and
+  `View.NodeViews` (`IsSetAsInput`); keep the Watch flagged `IsSetAsOutput`. Otherwise Dynamo
+  Player drops the field.
 - Engine must stay `PythonNet3`; `CPython3` is the fallback if the node fails to open.
 - `verify_dyn.py` asserts these structural invariants, so a bad hand-edit fails the check.
+
+## Ordering invariants (easy to break)
+
+- `click` must stay exactly as it was: selection set order, no geometry involved.
+- `rows` groups by room bounding-box centre; tolerance is always metres, converted to internal
+  feet. Corner `BL` = X ascending, Y ascending; the first letter picks Y direction, the second
+  picks X. Rooms without a bounding box are reported and excluded, never guessed at.
+- `number` sorts by the first digit run in the current Number and breaks ties on element id;
+  rooms with no digits go last and are listed in the report.
+- Ordering happens before the occupied scan and numbering, so it never changes which numbers
+  are considered taken.
 
 ## Behaviour invariants (easy to break)
 
@@ -43,6 +55,7 @@ there is no .NET project and no separate library.
 ## Docs
 
 - `renumber-spec.md` is the functional contract; read it first. `test_cases.md` holds the
-  offline checks and the Revit acceptance fixtures A–K.
-- Out of scope by design — do not add without asking: spatial ordering, linked models,
-  Areas/MEP spaces, per-room suffixes, descending sequences, level/view renumbering, presets.
+  offline checks and the Revit acceptance fixtures A–P.
+- Out of scope by design — do not add without asking: serpentine order, ordering by aisle or
+  zone attribute, path-following order, linked models, Areas/MEP spaces, per-room suffixes,
+  descending sequences, level/view renumbering, presets.

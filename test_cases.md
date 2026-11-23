@@ -11,17 +11,21 @@ python3 verify_dyn.py
 
 The harness loads `RenumberRooms.dyn`, extracts the Python from its node, and executes it
 against fake Rooms, selection, collector and transactions. It also asserts the graph wiring:
-six named `Is Input` nodes, one `Is Output` Watch, `PythonNet3`.
+nine named `Is Input` nodes, one `Is Output` Watch, `PythonNet3`.
 
 Covers: base sequence, step, affix separators, skip-occupied, old-number reuse, padding
 widening, regex escaping of affixes, numeric-only matching, input validation, dry run,
-unplaced rooms, empty selection, and temp-then-final writes.
+unplaced rooms, empty selection, temp-then-final writes, row ordering from all four corners,
+row tolerance merge/split, existing-number ordering and the no-digits fallback.
 
 ## 2. Revit fixtures
 
-Run on a **copy** of the model. For each fixture, select the listed rooms in the listed click
-order, then run, then check Numbers. `id` values below are placeholders for whatever your
-rooms have.
+Run on a **copy** of the model. For each fixture, select the listed rooms (clicking in the
+listed order unless the fixture says to drag), then run, then check Numbers. `id` values
+below are placeholders for whatever your rooms have.
+
+Every fixture below runs with `Order = click` unless it says otherwise. Add
+`Start corner = BL`, `Row tolerance = 3` for the rows fixtures.
 
 ### A. Base
 
@@ -98,10 +102,53 @@ Expected: first undo restores temporary numbers, second restores the original nu
 
 ### K. Player wiring
 
-- Six fields appear, in order: Prefix, Start, Step, Suffix, Digits, Dry run.
+- Nine fields appear, in order: Order, Start corner, Row tolerance (m), Prefix, Start, Step,
+  Suffix, Digits, Dry run.
 - Labels match the field names above.
 - The report appears under Outputs.
 - Running with `Step = 0` or `Start = -1` produces an `aborted` report and no changes.
+- `Order = grid` produces an `aborted` report and no changes.
+
+### L. Drag selection in rows order
+
+3 rows of 4 booths. Drag a box around all 12, starting at the bottom-left corner.
+
+| Input | Value |
+|---|---|
+| Order / Start corner | `rows` / `BL` |
+| Row tolerance | 3 |
+| Prefix, Start / Step / Digits | `A`, 1 / 1 / 3 |
+
+Expected: `A001` on the bottom-left booth, then left to right along each row, `A012` top-right.
+Report shows `row 1, pos 1` through `row 3, pos 4`.
+
+### M. Other start corners
+
+Same 12 booths, same drag, change only `Start corner`.
+Expected first label: `BR` -> bottom-right booth, `TL` -> top-left booth,
+`TR` -> top-right booth.
+
+### N. Row tolerance
+
+Two rows of booths 2 m apart, with depth differences within each row under 1 m.
+
+- Tolerance 1 keeps the rows separate: report shows two rows.
+- Tolerance 3 merges them into one: report shows a single row and the second row's booths
+  continue the same left-to-right run.
+
+The point is that the report's `row/pos` column shows which happened before anything is written.
+
+### O. Existing numbers re-spaced
+
+Rooms numbered `A001`, `A003`, `A007`, `B-2`, drag-selected in any order.
+Order `number`, Prefix `A`, Start 1, Step 1, Digits 3.
+Expected: `A001` (was 1), `A002` (was B-2), `A003` (was 3), `A004` (was 7).
+
+### P. Existing numbers with blanks
+
+Same as O plus one room with a blank Number and one numbered `LOBBY`.
+Expected: the four readable rooms renumbered as in O; the blank and `LOBBY` rooms numbered
+last, in id order, and listed under `No number to sort by (numbered last)`.
 
 ## 3. Results log
 
@@ -118,6 +165,11 @@ Expected: first undo restores temporary numbers, second restores the original nu
 | I order | | |
 | J undo | | |
 | K player | | |
+| L drag rows | | |
+| M corners | | |
+| N tolerance | | |
+| O re-space | | |
+| P blanks | | |
 
 ## 4. Failure triage
 
@@ -127,5 +179,5 @@ Expected: first undo restores temporary numbers, second restores the original nu
 | Graph opens with a broken Python node | Engine not available; switch to `CPython3`/`IronPython2` |
 | Fields missing in Player | Input nodes not marked `Is Input`; re-mark and save |
 | `Aborted: no placed Rooms` | Selection contained tags/areas/generic models, or nothing selected |
-| Wrong order | Rooms were re-selected before running; Revit rebuilt the selection set |
+| Wrong order | Check `Start corner` and `Row tolerance` in the report first; in `click` mode, rooms were re-selected before running and Revit rebuilt the selection set |
 | Warnings about duplicate room numbers | Pre-existing duplicates outside the pattern, unrelated to this tool |
